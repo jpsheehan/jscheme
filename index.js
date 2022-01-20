@@ -175,16 +175,6 @@ const library = {
 				["inc", ["length", ["cdr", "coll"]]]]],
 	"nil?": ["lambda", ["coll"],
 		["=", "coll", null]],
-	"reverse":
-		/**
-		 * (reverse '()) ==> '()
-		 * (reverse '(1 . ())) ==> '(1 . ())
-		 * (reverse '(1 . (2 . ()))) ==> '(2 . (1 . ()))
-		 */
-		["lambda", ["coll"],
-			["if", ["nil?", "coll"],
-				null,
-				["cons", ["reverse", ["cdr", "coll"]], ["car", "coll"]]]],
 	"nth":
 		["lambda", ["n", "coll"],
 			["if", ["zero?", "n"],
@@ -195,13 +185,28 @@ const library = {
 			["if", ["nil?", "coll"],
 				null,
 				["car", "coll"]]],
+
+	"reverse":
+		["lambda", ["coll"],
+			["if", ["nil?", "coll"],
+				null,
+				["cons", ["last", "coll"], ["reverse", ["init", "coll"]]]]],
+
+	"init":
+		["lambda", ["coll"],
+			["if", ["nil?", "coll"],
+				null,
+				["if", ["nil?", ["cdr", "coll"]],
+					null,
+					["cons", ["car", "coll"], ["init", ["cdr", "coll"]]]]]],
+
 	"last":
 		["lambda", ["coll"],
 			["if", ["nil?", "coll"],
 				null,
 				["if", ["nil?", ["cdr", "coll"]],
 					["car", "coll"],
-					["last", ["cdr", "coll"]]]]]
+					["last", ["cdr", "coll"]]]]],
 }
 
 function getDefaultEnvironment() {
@@ -339,11 +344,12 @@ function test() {
 			assert.equal(false, foo.call(env, ["zero?", []]));
 		})();
 
-		// (function testNilQ() {
-		// 	const env = getDefaultEnvironment();
-		// 	assert.deepEqual(foo.call(env, ["nil?", []]), true);
-		// 	assert.deepEqual(foo.call(env, ["nil?", [1]]), false);
-		// })();
+		(function testNilQ() {
+			const env = getDefaultEnvironment();
+			assert.equal(foo.call(env, ["nil?", null]), true);
+			assert.equal(foo.call(env, ["nil?", ["list"]]), true);
+			assert.equal(foo.call(env, ["nil?", ["cons", 1, null]]), false);
+		})();
 
 		(function testConsCarCdr() {
 			const env = getDefaultEnvironment();
@@ -400,10 +406,28 @@ function test() {
 
 		(function testReverse() {
 			const env = getDefaultEnvironment();
-			// foo.call(env, ["define", "nums", ["cons", 1, ["cons", 2, ["cons", 3, []]]]]);
-			// foo.call(env, ["define", "rnums", ["reverse", ["cons", 1, ["cons", 2, ["cons", 3, []]]]]]);
+			assert.equal(foo.call(["reverse", ["list"]]), null);
+			assert.equal(foo.call(["reverse", null]), null);
+			assert.equal(foo.call(env, ["first", ["reverse", ["list", 42]]]), 42);
+			assert.equal(foo.call(env, ["first", ["reverse", ["list", 39, 42]]]), 42);
 			assert.equal(foo.call(env, ["car", ["reverse", ["cons", 1, ["cons", 2, ["cons", 3, null]]]]]), 3);
 		})();
+
+		(function testFirst() {
+			const env = getDefaultEnvironment();
+			assert.equal(foo.call(env, ["first", null]), null);
+			assert.equal(foo.call(env, ["first", ["cons", 1, 2]]), 1);
+			assert.equal(foo.call(env, ["first", ["list", 6, 5, 4, 3, 2, 1]]), 6);
+		})();
+
+		(function testInit() {
+			const env = getDefaultEnvironment();
+			assert.equal(foo.call(env, ["init", null]), null);
+			assert.equal(foo.call(env, ["init", ["list", 1]]), null);
+			assert.equal(foo.call(env, ["car", ["init", ["list", 1, 2]]]), 1);
+		})();
+
+
 	})();
 
 
